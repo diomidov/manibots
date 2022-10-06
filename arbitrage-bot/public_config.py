@@ -1,7 +1,10 @@
 API_KEY = None                              # Add API key here, None for dry run
 USER_ID = "GYwh8DpU6tS0uY9dx8bGWczxZM02"    # Bot's user ID
+BOT_IDS = [USER_ID]                         # IDs of known bots (including this one)
 CONFIRM_BETS = False                        # Ask the user to confirm each set of bets (human-in-the-loop)
 RUN_ONCE = True                             # Whether to run once or in a loop
+SLEEP_TIME = 30                             # How long to sleep between loop iterations
+MAX_BACKOFF = 4                             # Maximum number of loop iterations between retries
 
 GROUPS = {
     # Try to make P(A) = P(B)

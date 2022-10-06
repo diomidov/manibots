@@ -3,11 +3,11 @@ import numpy as np
 import scipy as sp
 from time import sleep, time
 from collections import namedtuple
-from random import shuffle
+import random
 
 def shuffled(x):
     x = list(x)
-    shuffle(x)
+    random.shuffle(x)
     return x
 
 def cartesian_to_hyperbolic(p, y, n):
@@ -21,11 +21,29 @@ def hyperbolic_to_cartesian(p, r, phi):
 def prob_from_cartesian(p, y, n):
     return (p * n) / (p * n + (1 - p) * y)
 
+def my_balance():
+    return mf.get_user_by_id(USER_ID).balance
+
+class Backoff:
+    def __init__(self):
+        self.reset()
+    
+    def reset(self):
+        self.t = 1
+    
+    def should_fire(self):
+        if random.randrange(self.t) > 0:
+            return False
+        else:
+            self.t = min(self.t * 2, MAX_BACKOFF)
+            return True
+
 class Group:
     def __init__(self, name, d):
         self.name = name
         self.slugs, m = zip(*d.items())
         self.matrix = np.array(m).T
+        self.backoff = Backoff()
 
 
     def compute_profit_outcomes(self, dy, dn):
@@ -50,6 +68,9 @@ class Group:
             raise Exception('' + res.message + '\n' + str(res))
 
     def arbitrage(self):
+        if not self.backoff.should_fire(): 
+            return
+        
         print()
         print(f'=== {self.name} ===')
 
@@ -60,6 +81,7 @@ class Group:
                 if skip:
                     print(skip)
                     print('Skipping group.')
+                    self.backoff.reset()
                     return
             
             p = np.array([m.p for m in markets])
@@ -82,6 +104,8 @@ class Group:
                     print(f'  Buy {-shares[i]} NO for M${y2[i] - y[i]}')
                 else:
                     print(f'  Do not trade')
+            
+            self.backoff.reset()
 
             # TODO: make sure we can afford it!
             
@@ -91,6 +115,7 @@ class Group:
             # Make sure markets haven't moved
             if not np.allclose((y, n), get_shares([mf.get_slug(slug) for slug in self.slugs])):
                 print('Markets have moved!\nSkipping group.')
+                return
             
             if API_KEY:
                 for i, m in shuffled(enumerate(markets)):
@@ -104,35 +129,40 @@ class Group:
 
 def skip_market(m):
     if m.isResolved:
-        return f'Market "{m.question}" has resolved'
+        return f'Market "{m.question}" has resolved.'
     if m.closeTime / 1000 <= time() + 60 * 60:
-        return f'Market "{m.question}" closes in less then an hour'
-    if any(b.createdTime / 1000 >= time() - 60 for b in m.bets if b.userId != USER_ID):
-        return f'Market "{m.question}" has a trade in the last minute'
+        return f'Market "{m.question}" closes in less then an hour.'
+    if any(b.createdTime / 1000 >= time() - 60 for b in m.bets if b.userId not in BOT_IDS):
+        return f'Market "{m.question}" has a trade in the last minute.'
     return None
 
 def get_shares(markets):
     return np.array([m.pool['YES'] for m in markets]), np.array([m.pool['NO'] for m in markets])
 
 def run_once(groups):
+    print(f'Balance: {my_balance()}')
     for group in groups:
         try:
             group.arbitrage()
         except Exception as e:
             print(e)
+    print()
 
 def run(groups):
     while True:
         run_once(groups)
-        sleep(60)
+        sleep(SLEEP_TIME)
 
 # from private import API_KEY, USER_ID, ALL_GROUPS
 
 if __name__ == "__main__":
-    # from secret_config import *
-    from public_config import *
+    from secret_config import *
+    # from public_config import *
     groups = [Group(k, v) for k, v in GROUPS.items()]
     if RUN_ONCE:
         run_once(groups)
     else:
         run(groups)
+
+def my_balance(market):
+    return mf.get_user_by_id(USER_ID).balance
