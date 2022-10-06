@@ -1,0 +1,1 @@
+This bot exploited a bug in liquidity bonuses to get some dirty mana. The bug got fixed within a day.
