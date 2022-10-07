@@ -128,12 +128,21 @@ class Group:
                 return
 
 def skip_market(m):
+    recent_bets = [b for b in m.bets if b.createdTime / 1000 >= time() - 60 * 60 and b.userId not in BOT_IDS]
     if m.isResolved:
         return f'Market "{m.question}" has resolved.'
     if m.closeTime / 1000 <= time() + 60 * 60:
         return f'Market "{m.question}" closes in less then an hour.'
-    if any(b.createdTime / 1000 >= time() - 60 for b in m.bets if b.userId not in BOT_IDS):
+    if any(b.createdTime / 1000 >= time() - 60 for b in recent_bets):
         return f'Market "{m.question}" has a trade in the last minute.'
+    if m.probability <= 0.02:
+        return f'Market "{m.question}" has probability <= 2%.'
+    if m.probability >= 0.98:
+        return f'Market "{m.question}" has probability >= 2%.'
+    if any(b.probBefore <= 0.02 for b in recent_bets):
+        return f'Market "{m.question}" recently had probability <= 2%.'
+    if any(b.probBefore >= 0.98 for b in recent_bets):
+        return f'Market "{m.question}" recently had probability <= 98%.'
     return None
 
 def get_shares(markets):
