@@ -115,7 +115,7 @@ class Group:
                 return
 
             # Make sure markets haven't moved
-            if not np.allclose((y, n), get_shares([mf.get_slug(slug) for slug in self.slugs])):
+            if any(m.bets[0].createdTime != mf.get_bets(market=m.slug, limit=1)[0].createdTime for m in markets):
                 print('Markets have moved!\nSkipping group.')
                 return
             
