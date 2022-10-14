@@ -38,6 +38,26 @@ class Backoff:
             self.t = min(self.t * 2, MAX_BACKOFF)
             return True
 
+class PlannedBet:
+    def __init__(self, market, outcome, shares, cost):
+        self.market = market
+        self.outcome = outcome
+        self.shares = shares
+        self.cost = cost
+    
+    def __str__(self):
+        if self.shares > 0:
+            return f"{self.market.question}\n  Buy {self.shares} {self.outcome} shares for {self.cost}"
+        else:
+            return f"{self.market.question}\n  Sell {-self.shares} {self.outcome} shares for {-self.cost}"
+            
+    def execute(self):
+        if self.shares > 0:
+            mf.make_bet(API_KEY, self.cost, self.market.id, self.outcome)
+        else:
+            raise NotImplementedError('Selling is not supported yet')
+
+
 class Group:
     def __init__(self, name, d):
         self.name = name
@@ -94,22 +114,27 @@ class Group:
             shares = n2 - n - y2 + y
             print('Posterior probs:', prob_from_cartesian(p, y2, n2))
             print('Profits:', profit)
-            if np.min(profit) <= 0.25 * len(markets):
-                print('Profit insufficient, skipping')
+
+            planned_bets = []
+            for i, m in enumerate(markets):
+                # TODO: sell instead of buying when possible
+                if shares[i] > 0.5:
+                    planned_bets.append(PlannedBet(m, 'YES', shares[i], n2[i] - n[i]))
+                elif shares[i] < -0.5:
+                    planned_bets.append(PlannedBet(m, 'NO', -shares[i], y2[i] - y[i]))
+            
+            if np.min(profit) <= 0.2 * len(planned_bets) + 0.01:
+                print('Profit insufficient.')
                 return
 
-            for i, m in enumerate(markets):
-                print(m.question)
-                if shares[i] > 0.5:
-                    print(f'  Buy {shares[i]} YES for M${n2[i] - n[i]}')
-                elif shares[i] < -0.5:
-                    print(f'  Buy {-shares[i]} NO for M${y2[i] - y[i]}')
-                else:
-                    print(f'  Do not trade')
-            
             self.backoff.reset()
 
-            # TODO: make sure we can afford it!
+            for bet in planned_bets:
+                print(bet)
+
+            if sum(b.cost for b in planned_bets if b.cost > 0) > my_balance():
+                print("Insufficient balance!")
+                return
             
             if CONFIRM_BETS and input('Proceed? (y/n)') != 'y':
                 return
@@ -120,11 +145,8 @@ class Group:
                 return
             
             if API_KEY:
-                for i, m in shuffled(enumerate(markets)):
-                    if shares[i] > 0.5:
-                        mf.make_bet(API_KEY, n2[i] - n[i], m.id, 'YES')
-                    elif shares[i] < -0.5:
-                        mf.make_bet(API_KEY, y2[i] - y[i], m.id, 'NO')
+                for bet in planned_bets:
+                    bet.execute()
             else:
                 print('This is a dry run. Provide an API key to actually submit bets.')
                 return
@@ -163,8 +185,6 @@ def run(groups):
     while True:
         run_once(groups)
         sleep(SLEEP_TIME)
-
-# from private import API_KEY, USER_ID, ALL_GROUPS
 
 if __name__ == "__main__":
     from secret_config import *
