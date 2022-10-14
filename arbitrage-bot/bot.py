@@ -42,12 +42,14 @@ class Group:
     def __init__(self, name, d):
         self.name = name
         self.slugs, m = zip(*d.items())
-        self.matrix = np.array(m).T
+        m = np.array(m).T
+        self.y_matrix = (m == 1).astype(float)
+        self.n_matrix = (m == 0).astype(float)
         self.backoff = Backoff()
 
 
     def compute_profit_outcomes(self, dy, dn):
-        return self.matrix @ dy + (1 - self.matrix) @ dn
+        return self.y_matrix @ dy + self.n_matrix @ dn
 
     def optimize(self, p, y, n):
         r, phi = cartesian_to_hyperbolic(p, y, n)
@@ -172,6 +174,3 @@ if __name__ == "__main__":
         run_once(groups)
     else:
         run(groups)
-
-def my_balance(market):
-    return mf.get_user_by_id(USER_ID).balance

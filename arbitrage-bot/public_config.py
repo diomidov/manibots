@@ -1,7 +1,7 @@
 API_KEY = None                              # Add API key here, None for dry run
 USER_ID = "GYwh8DpU6tS0uY9dx8bGWczxZM02"    # Bot's user ID
 BOT_IDS = [USER_ID]                         # IDs of known bots (including this one)
-CONFIRM_BETS = False                        # Ask the user to confirm each set of bets (human-in-the-loop)
+CONFIRM_BETS = True                         # Ask the user to confirm each set of bets (human-in-the-loop)
 RUN_ONCE = True                             # Whether to run once or in a loop
 SLEEP_TIME = 30                             # How long to sleep between loop iterations
 MAX_BACKOFF = 4                             # Maximum number of loop iterations between retries
@@ -31,6 +31,18 @@ GROUPS = {
         #                                       |  |  |
         'will-russia-annex-any-part-of-ukrai': [0, 1, 1],
         'will-russia-annex-unoccupied-parts':  [0, 0, 1],
+    },
+
+    # Conditional markets
+    # Try to make P(C) = (P(B) - P(A)) / (1 - P(A))
+    'Artemis': {
+        #                                                    Nov
+        #                                                    |     Dec
+        #                                                    |     |  Later
+        #                                                    |     |  |
+        'will-artemis-i-launch-by-the-end-of-197144ac38ab': [1   , 0, 0],
+        'will-artemis-i-launch-by-the-end-of':              [1   , 1, 0],
+        'will-artemis-i-launch-by-the-end-of-12921fa25e45': [None, 1, 0],
     },
 }
 # There are more groups in `secret_config.py` which I'm not publishing to github :3
