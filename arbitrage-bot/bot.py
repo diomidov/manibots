@@ -141,12 +141,14 @@ class Group:
 
             # Make sure markets haven't moved
             if any(m.bets[0].createdTime != mf.get_bets(market=m.slug, limit=1)[0].createdTime for m in markets):
-                print('Markets have moved!\nSkipping group.')
-                return
+                print('Markets have moved!')
+                continue
             
             if API_KEY:
                 for bet in planned_bets:
                     bet.execute()
+                print(f'Balance: {my_balance()}')
+                continue
             else:
                 print('This is a dry run. Provide an API key to actually submit bets.')
                 return
@@ -173,13 +175,11 @@ def get_shares(markets):
     return np.array([m.pool['YES'] for m in markets]), np.array([m.pool['NO'] for m in markets])
 
 def run_once(groups):
-    print(f'Balance: {my_balance()}')
     for group in groups:
         try:
             group.arbitrage()
         except Exception as e:
             print(e)
-    print()
 
 def run(groups):
     while True:
@@ -190,6 +190,7 @@ if __name__ == "__main__":
     from secret_config import *
     # from public_config import *
     groups = [Group(k, v) for k, v in GROUPS.items()]
+    print(f'Balance: {my_balance()}')
     if RUN_ONCE:
         run_once(groups)
     else:
