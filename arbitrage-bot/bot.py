@@ -152,7 +152,7 @@ class Group:
                 return
 
 def skip_market(m):
-    recent_bets = [b for b in m.bets if b.createdTime / 1000 >= time() - 60 * 60 and b.userId not in BOT_IDS]
+    recent_bets = [b for b in m.bets if b.createdTime / 1000 >= time() - 60 * 60 and b.userId not in BOT_IDS and not b.isRedemption]
     if m.isResolved:
         return f'Market "{m.question}" has resolved.'
     if m.closeTime / 1000 <= time() + 60 * 60:
