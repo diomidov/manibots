@@ -33,29 +33,41 @@ processed_market_ids = set()
 creator_count = defaultdict(int)
 
 def bet(m):
-    print(f'Betting on {m.question}')
+    print(f'Betting')
     mf.make_bet(API_KEY, 10, m.id, 'NO', limitProb=0.43)
     # mf.make_bet(API_KEY, 1, m.id, 'YES', limitProb=0.05)
+
+def process_market(m):
+    if m.id in processed_market_ids:
+        return
+    processed_market_ids.add(m.id)
+
+    m = mf.get_market(m.id)
+    if len(m.bets) > 0 or m.outcomeType != 'BINARY':
+        return
+
+    print(f'New market: {m.question}')
+
+    creator_count[m.creatorId] += 1
+    if creator_count[m.creatorId] >= 10:
+        print(f'Too many markets from {m.creatorUsername}.')
+        return
+
+    for word in ['@pos', 'position', 'amplified odds', 'this market', 'resolves', 'conditional']:
+        if word in m.question.lower():
+            print(f'Contains blacklisted word {word}')
+            return
+
+    bet(m)
 
 def main():
     while True:
         for m in mf.get_markets(5):
-            if m.id in processed_market_ids:
-                continue
-            processed_market_ids.add(m.id)
-
-            if m.outcomeType != 'BINARY':
-                continue
-
-            creator_count[m.creatorId] += 1
-            if creator_count[m.creatorId] >= 10:
-                print(f'Too many markets from {m.creatorUsername}.')
-                continue
-
-            m = mf.get_market(m.id)
-            if len(m.bets) == 0:
-                bet(m)
-        sleep(0.250)
+            try:
+                process_market(m)
+            except Exception as e:
+                print(e)
+        sleep(0.25)
 
 if __name__ == '__main__':
     main()
