@@ -44,6 +44,9 @@ def main():
                 continue
             processed_market_ids.add(m.id)
 
+            if m.outcomeType != 'BINARY':
+                continue
+
             creator_count[m.creatorId] += 1
             if creator_count[m.creatorId] >= 10:
                 print(f'Too many markets from {m.creatorUsername}.')
