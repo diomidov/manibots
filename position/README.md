@@ -1,0 +1,1 @@
+The average binary market on Manifold resolves to about 42%. This bot looks for new markets with no bets and buys NO.
