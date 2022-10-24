@@ -55,7 +55,7 @@ def main():
             m = mf.get_market(m.id)
             if len(m.bets) == 0:
                 bet(m)
-        sleep(250)
+        sleep(0.250)
 
 if __name__ == '__main__':
     main()
