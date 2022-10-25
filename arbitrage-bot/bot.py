@@ -3,6 +3,7 @@ import numpy as np
 import scipy as sp
 from time import sleep, time
 from collections import namedtuple
+from traceback import print_exception
 import random
 
 def shuffled(x):
@@ -93,8 +94,7 @@ class Group:
         if not self.backoff.should_fire(): 
             return
         
-        print()
-        print(f'=== {self.name} ===')
+        print(f'=== {self.name} ==='.ljust(50), end="\r", flush=True)
 
         while True:
             markets = [mf.get_slug(slug) for slug in self.slugs]
@@ -108,12 +108,9 @@ class Group:
             
             p = np.array([m.p for m in markets])
             y, n = get_shares(markets)
-            print('Prior probs:    ', prob_from_cartesian(p, y, n))
 
             profit, y2, n2 = self.optimize(p, y, n)
             shares = n2 - n - y2 + y
-            print('Posterior probs:', prob_from_cartesian(p, y2, n2))
-            print('Profits:', profit)
 
             planned_bets = []
             for i, m in enumerate(markets):
@@ -124,8 +121,12 @@ class Group:
                     planned_bets.append(PlannedBet(m, 'NO', -shares[i], y2[i] - y[i]))
             
             if np.min(profit) <= 0.2 * len(planned_bets) + 0.01:
-                print('Profit insufficient.')
                 return
+
+            print()
+            print('Prior probs:    ', prob_from_cartesian(p, y, n))
+            print('Posterior probs:', prob_from_cartesian(p, y2, n2))
+            print('Profits:', profit)
 
             self.backoff.reset()
 
@@ -133,7 +134,7 @@ class Group:
                 print(bet)
 
             if sum(b.cost for b in planned_bets if b.cost > 0) > my_balance():
-                print("Insufficient balance!")
+                print("Insufficient balance!\n")
                 return
             
             if CONFIRM_BETS and input('Proceed? (y/n)') != 'y':
@@ -141,16 +142,16 @@ class Group:
 
             # Make sure markets haven't moved
             if any(m.bets[0].createdTime != mf.get_bets(market=m.slug, limit=1)[0].createdTime for m in markets):
-                print('Markets have moved!')
+                print('Markets have moved!\n')
                 continue
             
             if API_KEY:
                 for bet in planned_bets:
                     bet.execute()
-                print(f'Balance: {my_balance()}')
+                print(f'Balance: {my_balance()}\n')
                 continue
             else:
-                print('This is a dry run. Provide an API key to actually submit bets.')
+                print('This is a dry run. Provide an API key to actually submit bets.\n')
                 return
 
 def skip_market(m):
@@ -179,7 +180,7 @@ def run_once(groups):
         try:
             group.arbitrage()
         except Exception as e:
-            print(e)
+            print_exception(e)
 
 def run(groups):
     while True:
@@ -190,7 +191,7 @@ if __name__ == "__main__":
     from secret_config import *
     # from public_config import *
     groups = [Group(k, v) for k, v in GROUPS.items()]
-    print(f'Balance: {my_balance()}')
+    print(f'Balance: {my_balance()}\n')
     if RUN_ONCE:
         run_once(groups)
     else:
