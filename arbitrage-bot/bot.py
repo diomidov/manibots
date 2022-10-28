@@ -102,7 +102,7 @@ class Group:
                 skip = skip_market(m)
                 if skip:
                     print(skip)
-                    print('Skipping group.')
+                    print('Skipping group.\n')
                     self.backoff.reset()
                     return
             
@@ -141,7 +141,8 @@ class Group:
                 return
 
             # Make sure markets haven't moved
-            if any(m.bets[0].createdTime != mf.get_bets(market=m.slug, limit=1)[0].createdTime for m in markets):
+            # if any(m.bets[0].createdTime != mf.get_bets(market=m.slug, limit=1)[0].createdTime for m in markets):
+            if not np.allclose((y, n), get_shares([mf.get_slug(slug) for slug in self.slugs])):
                 print('Markets have moved!\n')
                 continue
             
