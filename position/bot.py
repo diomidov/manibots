@@ -2,6 +2,7 @@ from manifoldpy import api as mf
 from time import sleep
 from collections import defaultdict
 from traceback import print_exception
+from requests.exceptions import ConnectionError
 import re
 
 # from public_config import *
@@ -79,6 +80,8 @@ def main():
         try:
             for m in mf.get_markets(5):
                 process_market(m)
+        except ConnectionError as e:
+            print(e)
         except Exception as e:
             print_exception(e)
         sleep(0.25)

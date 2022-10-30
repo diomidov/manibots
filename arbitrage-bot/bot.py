@@ -4,6 +4,7 @@ import scipy as sp
 from time import sleep, time
 from collections import namedtuple
 from traceback import print_exception
+from requests.exceptions import ConnectionError
 import random
 
 def shuffled(x):
@@ -24,6 +25,9 @@ def prob_from_cartesian(p, y, n):
 
 def my_balance():
     return mf.get_user_by_id(USER_ID).balance
+
+class OptimizationException(Exception):
+    pass
 
 class Backoff:
     def __init__(self):
@@ -88,7 +92,8 @@ class Group:
             profit = self.compute_profit_outcomes(y - y2, n - n2)
             return profit, y2, n2
         else:
-            raise Exception('' + res.message + '\n' + str(res))
+            # raise Exception(res.message + '\n' + str(res))
+            raise OptimizationException(res.message)
 
     def arbitrage(self):
         if not self.backoff.should_fire(): 
@@ -101,6 +106,7 @@ class Group:
             for m in markets:
                 skip = skip_market(m)
                 if skip:
+                    print()
                     print(skip)
                     print('Skipping group.\n')
                     self.backoff.reset()
@@ -166,7 +172,7 @@ def skip_market(m):
     if m.probability <= 0.02:
         return f'Market "{m.question}" has probability <= 2%.'
     if m.probability >= 0.98:
-        return f'Market "{m.question}" has probability >= 2%.'
+        return f'Market "{m.question}" has probability >= 98%.'
     if any(b.probBefore <= 0.02 for b in recent_bets):
         return f'Market "{m.question}" recently had probability <= 2%.'
     if any(b.probBefore >= 0.98 for b in recent_bets):
@@ -180,7 +186,11 @@ def run_once(groups):
     for group in groups:
         try:
             group.arbitrage()
+        except (ConnectionError, OptimizationException) as e:
+            print()
+            print(e)
         except Exception as e:
+            print()
             print_exception(e)
 
 def run(groups):
