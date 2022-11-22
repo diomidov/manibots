@@ -72,7 +72,6 @@ class Group:
         self.n_matrix = (m == 0).astype(float)
         self.backoff = Backoff()
 
-
     def compute_profit_outcomes(self, dy, dn):
         return self.y_matrix @ dy + self.n_matrix @ dn
 
@@ -162,7 +161,8 @@ class Group:
                 return
 
 def skip_market(m):
-    recent_bets = [b for b in m.bets if b.createdTime / 1000 >= time() - 60 * 60 and b.userId not in BOT_IDS and not b.isRedemption]
+    bets = mf.get_bets(marketId=m.id, limit=100)
+    recent_bets = [b for b in bets if b.createdTime / 1000 >= time() - 60 * 60 and b.userId not in BOT_IDS and not b.isRedemption]
     if m.isResolved:
         return f'Market "{m.question}" has resolved.'
     if m.closeTime / 1000 <= time() + 60 * 60:
